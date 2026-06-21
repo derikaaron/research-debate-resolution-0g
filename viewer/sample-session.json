@@ -1,0 +1,42 @@
+{
+  "id": "test-session-1",
+  "question": "Should frontier AI models be open source?",
+  "rounds": [
+    {
+      "roundNumber": 0,
+      "answers": [
+        {"agentId": "agent-1", "modelName": "llama-3.3-70b", "claims": [{"id": "agent-1-r0-c0", "agentId": "agent-1", "modelName": "llama-3.3-70b", "text": "Open sourcing frontier models accelerates research and democratizes access.", "confidence": 0.8, "round": 0}], "finalAnswer": "Open sourcing frontier models accelerates research and democratizes access."},
+        {"agentId": "agent-2", "modelName": "qwen3-32b", "claims": [{"id": "agent-2-r0-c0", "agentId": "agent-2", "modelName": "qwen3-32b", "text": "Open sourcing frontier models creates serious misuse risk at scale.", "confidence": 0.75, "round": 0}], "finalAnswer": "Open sourcing frontier models creates serious misuse risk at scale."}
+      ],
+      "critiques": [
+        {"id": "c1", "fromAgentId": "agent-2", "targetClaimId": "agent-1-r0-c0", "text": "This ignores dual-use risk entirely.", "round": 0}
+      ]
+    }
+  ],
+  "verdict": {
+    "winningAgentId": "agent-1",
+    "winningAnswer": "Open sourcing frontier models accelerates research and democratizes access.",
+    "reasoning": "Agent-1's argument better balanced innovation against risk.",
+    "claimVerdicts": [
+      {"claimId": "agent-1-r0-c0", "agentId": "agent-1", "status": "accepted", "score": 0.85, "judgeReasoning": "Sound argument."},
+      {"claimId": "agent-2-r0-c0", "agentId": "agent-2", "status": "partially_accepted", "score": 0.6, "judgeReasoning": "Valid concern but overstated."}
+    ],
+    "rejectedAnswers": [
+      {"agentId": "agent-2", "answer": "Open sourcing frontier models creates serious misuse risk at scale.", "rejectionReason": "Agent-2's risk framing was weaker than agent-1's balanced case."}
+    ]
+  },
+  "evidenceGraph": {
+    "sessionId": "test-session-1",
+    "question": "Should frontier AI models be open source?",
+    "nodes": [
+      {"id": "agent-1-r0-c0", "type": "claim", "agentId": "agent-1", "modelName": "llama-3.3-70b", "text": "Open sourcing frontier models accelerates research and democratizes access.", "round": 0, "status": "accepted", "score": 0.85},
+      {"id": "agent-2-r0-c0", "type": "claim", "agentId": "agent-2", "modelName": "qwen3-32b", "text": "Open sourcing frontier models creates serious misuse risk at scale.", "round": 0, "status": "partially_accepted", "score": 0.6},
+      {"id": "c1", "type": "critique", "agentId": "agent-2", "modelName": "", "text": "This ignores dual-use risk entirely.", "round": 0}
+    ],
+    "edges": [
+      {"from": "c1", "to": "agent-1-r0-c0", "relation": "critiques"}
+    ],
+    "winningNodeId": "agent-1-r0-c0"
+  },
+  "createdAt": "2026-06-18T00:00:00Z"
+}

@@ -1,0 +1,166 @@
+// Multi-provider web search layer.
+//
+// Provider selection (set SEARCH_PROVIDER in .env):
+//   tavily  — default; built for LLM/agent use; generous free tier
+//   serper  — fallback; Google-backed; good free tier
+//   none    — explicit opt-out; surfaces a clear [SEARCH UNAVAILABLE] block
+//             so agents know to lower confidence rather than fabricating
+//
+// The "none" provider is intentional: it's safer than fake search.
+// Agents are instructed to treat [SEARCH UNAVAILABLE] as unverified evidence
+// and respond with lower confidence / lean UNCLEAR. This is the correct
+// degradation path for a hackathon where API keys are still being sourced.
+
+const PROVIDER = (process.env.SEARCH_PROVIDER || "tavily").toLowerCase();
+
+// ─── Shared output format ────────────────────────────────────────────────────
+
+interface NormalizedResult {
+  title: string;
+  url: string;
+  snippet: string;
+  publishedDate?: string;
+}
+
+function formatResults(results: NormalizedResult[], query: string): string {
+  if (results.length === 0) {
+    return `No web results found for "${query}".`;
+  }
+  return results
+    .slice(0, 5)
+    .map((r, i) => {
+      const dateTag = r.publishedDate ? ` [${r.publishedDate}]` : "";
+      const snippet = r.snippet.slice(0, 300) + (r.snippet.length > 300 ? "…" : "");
+      return `[${i + 1}] ${r.title}${dateTag}\n${snippet}\nSource: ${r.url}`;
+    })
+    .join("\n\n");
+}
+
+// ─── Tavily ──────────────────────────────────────────────────────────────────
+
+interface TavilyResult {
+  title: string;
+  url: string;
+  content: string;
+  published_date?: string;
+}
+
+interface TavilyResponse {
+  results?: TavilyResult[];
+}
+
+async function searchViaTavily(query: string): Promise<string> {
+  const apiKey = process.env.TAVILY_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "TAVILY_API_KEY is not set. Sign up at https://tavily.com — free tier gives 1,000 searches/month, no credit card needed. Add to .env as TAVILY_API_KEY=tvly-..."
+    );
+  }
+
+  const resp = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      query,
+      max_results: 7,
+      search_depth: "basic", // "advanced" costs 2 credits; basic is fine for hackathon
+      include_answer: false, // we want raw results, not Tavily's own LLM summary
+    }),
+  });
+
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => "");
+    throw new Error(`Tavily API error ${resp.status}: ${body.slice(0, 300)}`);
+  }
+
+  const data = (await resp.json()) as TavilyResponse;
+  const normalized: NormalizedResult[] = (data.results ?? []).map((r) => ({
+    title: r.title,
+    url: r.url,
+    snippet: r.content,
+    publishedDate: r.published_date,
+  }));
+
+  return formatResults(normalized, query);
+}
+
+// ─── Serper ──────────────────────────────────────────────────────────────────
+
+interface SerperResult {
+  title: string;
+  link: string;
+  snippet: string;
+  date?: string;
+}
+
+interface SerperResponse {
+  organic?: SerperResult[];
+}
+
+async function searchViaSerper(query: string): Promise<string> {
+  const apiKey = process.env.SERPER_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "SERPER_API_KEY is not set. Sign up at https://serper.dev — free tier gives 2,500 searches. Add to .env as SERPER_API_KEY=..."
+    );
+  }
+
+  const resp = await fetch("https://google.serper.dev/search", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-KEY": apiKey,
+    },
+    body: JSON.stringify({ q: query, num: 5 }),
+  });
+
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => "");
+    throw new Error(`Serper API error ${resp.status}: ${body.slice(0, 300)}`);
+  }
+
+  const data = (await resp.json()) as SerperResponse;
+  const normalized: NormalizedResult[] = (data.organic ?? []).map((r) => ({
+    title: r.title,
+    url: r.link,
+    snippet: r.snippet,
+    publishedDate: r.date,
+  }));
+
+  return formatResults(normalized, query);
+}
+
+// ─── No-search fallback ───────────────────────────────────────────────────────
+
+function searchUnavailable(query: string): string {
+  // Return a structured block the agent can recognize and reason about.
+  // This is intentionally NOT an error — the agent should handle it gracefully.
+  return (
+    `[SEARCH UNAVAILABLE: no search provider configured]\n` +
+    `Query attempted: "${query}"\n` +
+    `Set SEARCH_PROVIDER=tavily and TAVILY_API_KEY=... in .env to enable real search.\n` +
+    `Treat this query as UNVERIFIED. Do not assume an answer — lower confidence and lean UNCLEAR.`
+  );
+}
+
+// ─── Public entry point ───────────────────────────────────────────────────────
+
+export async function webSearch(query: string): Promise<string> {
+  switch (PROVIDER) {
+    case "tavily":
+      return searchViaTavily(query);
+    case "serper":
+      return searchViaSerper(query);
+    case "none":
+      return searchUnavailable(query);
+    default:
+      console.warn(
+        `[webSearch] Unknown SEARCH_PROVIDER="${PROVIDER}", falling back to "none". ` +
+        `Valid values: tavily, serper, none`
+      );
+      return searchUnavailable(query);
+  }
+}

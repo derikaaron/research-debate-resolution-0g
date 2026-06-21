@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Research Debate — Evidence Map</title>
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --panel: #12141c;
+    --border: #232531;
+    --text: #e8e9ed;
+    --muted: #8a8fa3;
+    --accepted: #2dd4a0;
+    --partial: #e6b450;
+    --rejected: #f06868;
+    --critique: #6c7fd8;
+    --gold: #ffd166;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* ---------- Header ---------- */
+  #header {
+    padding: 22px 28px 18px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #0d0f16, #0a0b0f);
+  }
+  #header h1 { font-size: 21px; margin: 0 0 6px; font-weight: 650; letter-spacing: -0.01em; }
+  #header .meta { color: var(--muted); font-size: 13px; }
+  #header .meta b { color: #c9cdde; }
+
+  #controls {
+    padding: 12px 28px;
+    display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+  }
+  #file-input { color: var(--muted); font-size: 12px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+  /* ---------- Main layout ---------- */
+  #layout { display: flex; }
+  #board-wrap { flex: 1; overflow: auto; height: calc(100vh - 128px); position: relative; }
+  #board { position: relative; padding: 60px 50px 80px; }
+
+  #side-panel {
+    width: 380px; min-width: 380px;
+    height: calc(100vh - 128px);
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    padding: 22px;
+    overflow-y: auto;
+  }
+  #side-panel h3 { margin: 0 0 14px; font-size: 16px; font-weight: 650; }
+  #side-panel .label {
+    color: var(--muted); font-size: 10.5px; text-transform: uppercase;
+    letter-spacing: 0.07em; font-weight: 650; margin: 16px 0 5px;
+  }
+  #side-panel .label:first-of-type { margin-top: 0; }
+  #side-panel .body-text { color: #c5c8d6; line-height: 1.6; font-size: 13.5px; }
+  #side-panel .pill {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 650; color: #0a0b0f;
+  }
+  #side-panel .reject-card {
+    border-left: 3px solid #353849; padding: 2px 0 2px 12px; margin-bottom: 14px;
+  }
+  #side-panel .reject-card b { color: #d6d9e3; }
+  .back-btn {
+    background: #1a1c26; color: #b8bccb; border: 1px solid #2c2f3d;
+    padding: 7px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 18px;
+  }
+  .back-btn:hover { background: #21232f; }
+
+  /* ---------- Question banner ---------- */
+  #question-banner {
+    background: #15171f; border: 1px solid #2a2d3a; border-radius: 10px;
+    padding: 14px 22px; margin: 0 0 46px; text-align: center;
+    font-size: 15px; font-weight: 600; color: #e0e2ec;
+    max-width: 640px; margin-left: auto; margin-right: auto;
+    position: relative; z-index: 2;
+  }
+
+  /* ---------- Grid of cards ---------- */
+  #grid { position: relative; display: flex; flex-direction: column; gap: 36px; }
+  .agent-row { display: flex; align-items: flex-start; gap: 0; }
+  .agent-label {
+    width: 110px; flex-shrink: 0; padding-top: 14px;
+    font-size: 12.5px; font-weight: 650; color: var(--muted);
+  }
+  .agent-label .model-name { font-size: 10.5px; color: #5a5f73; font-weight: 500; display: block; margin-top: 2px; }
+  .round-cell { width: 300px; flex-shrink: 0; padding: 0 18px; position: relative; }
+
+  .claim-card {
+    border-radius: 10px; padding: 14px 16px; font-size: 13px; line-height: 1.5;
+    cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease;
+    border: 2px solid transparent; position: relative; color: #11121a;
+  }
+  .claim-card:hover { transform: translateY(-2px); }
+  .claim-card.status-accepted { background: var(--accepted); }
+  .claim-card.status-partially_accepted { background: var(--partial); }
+  .claim-card.status-rejected { background: var(--rejected); opacity: 0.85; }
+  .claim-card.winner-path {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 1px var(--gold), 0 0 22px 2px rgba(255,209,102,0.45);
+  }
+  .claim-card.dimmed { opacity: 0.55; }
+  .claim-card .score-tag {
+    position: absolute; top: -9px; right: 10px; background: #11121a; color: #fff;
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+  }
+  .claim-card .winner-tag {
+    position: absolute; top: -11px; left: 10px; background: var(--gold); color: #11121a;
+    font-size: 10px; font-weight: 750; padding: 2px 8px; border-radius: 10px;
+    letter-spacing: 0.03em;
+  }
+
+  .critique-note {
+    margin-top: 10px; background: #1a1c2a; border: 1px solid #2e3146;
+    border-radius: 8px; padding: 9px 12px; font-size: 11.5px; color: #aab0cc;
+    cursor: pointer; line-height: 1.45;
+  }
+  .critique-note:hover { border-color: var(--critique); }
+  .critique-note .from { color: var(--critique); font-weight: 650; }
+
+  #svg-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+
+  #empty-state {
+    display: flex; align-items: center; justify-content: center;
+    height: calc(100vh - 128px); color: #4a4f63; font-size: 14px; width: 100%;
+  }
+
+  .round-header {
+    font-size: 11px; color: #5a5f73; text-transform: uppercase; letter-spacing: 0.06em;
+    font-weight: 650; margin-bottom: 10px; padding-left: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1 id="question-title">Research Debate — Evidence Map</h1>
+  <div class="meta" id="session-meta">Load a debate session JSON file to begin</div>
+</div>
+
+<div id="controls">
+  <input type="file" id="file-input" accept=".json" />
+  <div class="legend">
+    <span class="legend-item"><span class="swatch" style="background:var(--accepted)"></span>Accepted</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--partial)"></span>Partially accepted</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--rejected)"></span>Rejected</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--critique)"></span>Critique</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--gold); box-shadow:0 0 6px var(--gold)"></span>Winning path</span>
+  </div>
+</div>
+
+<div id="layout">
+  <div id="board-wrap">
+    <div id="empty-state">No session loaded yet. Choose a session JSON file above to render the evidence map.</div>
+    <div id="board" style="display:none;">
+      <div id="question-banner"></div>
+      <div id="grid"></div>
+      <svg id="svg-overlay"></svg>
+    </div>
+  </div>
+  <div id="side-panel" style="display:none;"></div>
+</div>
+
+<script>
+let currentSession = null;
+let currentAgentOrder = [];
+
+document.getElementById('file-input').addEventListener('change', function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (evt) {
+    try {
+      renderSession(JSON.parse(evt.target.result));
+    } catch (err) {
+      alert('Could not parse this file as JSON: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+});
+
+function statusColorVar(status) {
+  if (status === 'accepted') return 'var(--accepted)';
+  if (status === 'partially_accepted') return 'var(--partial)';
+  if (status === 'rejected') return 'var(--rejected)';
+  return '#555';
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderSession(session) {
+  currentSession = session;
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('board').style.display = 'block';
+  document.getElementById('side-panel').style.display = 'block';
+  document.getElementById('question-title').textContent = 'Research Debate — Evidence Map';
+  document.getElementById('question-banner').textContent = session.question || '';
+
+  const agentOrder = [...new Set(
+    (session.rounds || []).flatMap(r => r.answers.map(a => a.agentId))
+  )];
+  currentAgentOrder = agentOrder;
+
+  const winningAgentId = session.verdict?.winningAgentId;
+  document.getElementById('session-meta').innerHTML =
+    `<b>${agentOrder.length}</b> agents · <b>${session.rounds.length}</b> rounds · winner: <b>${winningAgentId || 'n/a'}</b>`;
+
+  const graph = session.evidenceGraph;
+  if (!graph) {
+    alert('This session has no evidenceGraph field.');
+    return;
+  }
+
+  const winningPathIds = new Set(
+    graph.nodes.filter(n => n.type === 'claim' && n.agentId === winningAgentId).map(n => n.id)
+  );
+
+  // model name lookup per agent (for the row label)
+  const modelByAgent = {};
+  for (const n of graph.nodes) {
+    if (n.type === 'claim' && n.modelName) modelByAgent[n.agentId] = n.modelName;
+  }
+
+  const numRounds = session.rounds.length;
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  // Round headers row (offset to align with round-cells)
+  const headerRow = document.createElement('div');
+  headerRow.className = 'agent-row';
+  headerRow.innerHTML = `<div class="agent-label"></div>` +
+    Array.from({length: numRounds}, (_, r) => `<div class="round-cell"><div class="round-header">Round ${r}</div></div>`).join('');
+  grid.appendChild(headerRow);
+
+  for (const agentId of agentOrder) {
+    const row = document.createElement('div');
+    row.className = 'agent-row';
+    row.dataset.agentId = agentId;
+
+    let html = `<div class="agent-label">${agentId}<span class="model-name">${modelByAgent[agentId] || ''}</span></div>`;
+
+    for (let r = 0; r < numRounds; r++) {
+      const claimNode = graph.nodes.find(n => n.type === 'claim' && n.agentId === agentId && n.round === r);
+      if (!claimNode) { html += `<div class="round-cell"></div>`; continue; }
+
+      const isWinner = winningPathIds.has(claimNode.id);
+      const isDimmed = !isWinner && winningAgentId; // dim non-winner claims once we know a winner exists
+      const critiquesOnThis = graph.edges
+        .filter(e => e.to === claimNode.id && e.relation === 'critiques')
+        .map(e => graph.nodes.find(n => n.id === e.from))
+        .filter(Boolean);
+
+      html += `<div class="round-cell" id="cell-${claimNode.id}">`;
+      html += `<div class="claim-card status-${claimNode.status || ''} ${isWinner ? 'winner-path' : ''} ${isDimmed ? 'dimmed' : ''}" data-node-id="${claimNode.id}" onclick="showClaimDetail('${claimNode.id}')">`;
+      if (isWinner && claimNode.id === graph.winningNodeId) html += `<span class="winner-tag">WINNER</span>`;
+      if (typeof claimNode.score === 'number') html += `<span class="score-tag">${claimNode.score.toFixed(2)}</span>`;
+      html += escapeHtml(claimNode.text);
+      html += `</div>`;
+
+      for (const crit of critiquesOnThis) {
+        html += `<div class="critique-note" data-node-id="${crit.id}" onclick="showClaimDetail('${crit.id}')"><span class="from">${crit.agentId}</span> critiques: ${escapeHtml(crit.text)}</div>`;
+      }
+      html += `</div>`;
+    }
+
+    row.innerHTML = html;
+    grid.appendChild(row);
+  }
+
+  drawConnectors(graph, winningPathIds, agentOrder, numRounds);
+  showVerdictSummary(session);
+}
+
+// Draws SVG lines: question -> round0 claims, and round(N) -> round(N+1) revisions for the same agent
+function drawConnectors(graph, winningPathIds, agentOrder, numRounds) {
+  const svg = document.getElementById('svg-overlay');
+  const board = document.getElementById('board');
+  // size svg to board's scroll size
+  requestAnimationFrame(() => {
+    svg.setAttribute('width', board.scrollWidth);
+    svg.setAttribute('height', board.scrollHeight);
+    svg.innerHTML = '';
+
+    const boardRect = board.getBoundingClientRect();
+
+    function centerOf(el) {
+      const r = el.getBoundingClientRect();
+      return {
+        x: r.left - boardRect.left + r.width / 2,
+        y: r.top - boardRect.top + r.height / 2,
+        top: r.top - boardRect.top,
+        bottom: r.bottom - boardRect.top,
+        left: r.left - boardRect.left,
+        right: r.right - boardRect.left
+      };
+    }
+
+    // question -> round 0 claims
+    const qEl = document.getElementById('question-banner');
+    if (qEl) {
+      const qPos = centerOf(qEl);
+      for (const agentId of agentOrder) {
+        const claim0 = graph.nodes.find(n => n.type === 'claim' && n.agentId === agentId && n.round === 0);
+        if (!claim0) continue;
+        const cardEl = document.querySelector(`.claim-card[data-node-id="${claim0.id}"]`);
+        if (!cardEl) continue;
+        const cPos = centerOf(cardEl);
+        addLine(svg, qPos.x, qPos.bottom, cPos.x, cPos.top, '#2e313f', false);
+      }
+    }
+
+    // revision links: agent's claim in round r -> round r+1
+    for (const agentId of agentOrder) {
+      for (let r = 0; r < numRounds - 1; r++) {
+        const a = graph.nodes.find(n => n.type === 'claim' && n.agentId === agentId && n.round === r);
+        const b = graph.nodes.find(n => n.type === 'claim' && n.agentId === agentId && n.round === r + 1);
+        if (!a || !b) continue;
+        const aEl = document.querySelector(`.claim-card[data-node-id="${a.id}"]`);
+        const bEl = document.querySelector(`.claim-card[data-node-id="${b.id}"]`);
+        if (!aEl || !bEl) continue;
+        const aPos = centerOf(aEl), bPos = centerOf(bEl);
+        const isWinnerLink = winningPathIds.has(a.id) && winningPathIds.has(b.id);
+        addLine(svg, aPos.right, aPos.y, bPos.left, bPos.y, isWinnerLink ? '#ffd166' : '#33364a', isWinnerLink);
+      }
+    }
+  });
+}
+
+function addLine(svg, x1, y1, x2, y2, color, glow) {
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  const midX = (x1 + x2) / 2;
+  path.setAttribute('d', `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`);
+  path.setAttribute('stroke', color);
+  path.setAttribute('stroke-width', glow ? '2.5' : '1.5');
+  path.setAttribute('fill', 'none');
+  if (glow) path.setAttribute('style', 'filter: drop-shadow(0 0 4px rgba(255,209,102,0.6));');
+  svg.appendChild(path);
+}
+
+function showClaimDetail(nodeId) {
+  const graph = currentSession.evidenceGraph;
+  const node = graph.nodes.find(n => n.id === nodeId);
+  if (!node) return;
+  const v = currentSession.verdict;
+  const cv = v?.claimVerdicts?.find(x => x.claimId === nodeId);
+
+  const panel = document.getElementById('side-panel');
+  let html = `<h3>${node.type === 'claim' ? 'Claim' : 'Critique'} — ${node.agentId}</h3>`;
+  html += `<div class="label">Round ${node.round}${node.modelName ? ' · ' + node.modelName : ''}</div>`;
+  html += `<div class="body-text">${escapeHtml(node.text)}</div>`;
+
+  if (cv) {
+    html += `<div class="label">Judge verdict</div>`;
+    html += `<span class="pill" style="background:${statusColorVar(cv.status)}">${cv.status.replace('_',' ')} · ${cv.score.toFixed(2)}</span>`;
+    html += `<div class="body-text" style="margin-top:8px;">${escapeHtml(cv.judgeReasoning)}</div>`;
+  }
+
+  html += `<button class="back-btn" onclick="showVerdictSummary(currentSession)">← Back to verdict summary</button>`;
+  panel.innerHTML = html;
+}
+
+function showVerdictSummary(session) {
+  const panel = document.getElementById('side-panel');
+  const v = session.verdict;
+  if (!v) { panel.innerHTML = '<p>No verdict in this session.</p>'; return; }
+
+  let html = `<h3>Why ${v.winningAgentId} won</h3>`;
+  html += `<div class="body-text">${escapeHtml(v.reasoning)}</div>`;
+  html += `<div class="label">Winning answer</div><div class="body-text">${escapeHtml(v.winningAnswer)}</div>`;
+  html += `<div class="label">Why the others lost</div>`;
+  for (const r of v.rejectedAnswers || []) {
+    html += `<div class="reject-card"><b>${r.agentId}</b><div class="body-text">${escapeHtml(r.rejectionReason)}</div></div>`;
+  }
+  html += `<div class="label" style="margin-top:20px;">Tip</div><div class="body-text" style="color:#6b7080;font-size:12px;">Click any card or critique note to inspect it. Cards outlined in gold form the winning agent's full reasoning path across rounds.</div>`;
+  panel.innerHTML = html;
+}
+
+window.addEventListener('resize', () => {
+  if (currentSession) {
+    const graph = currentSession.evidenceGraph;
+    const winningAgentId = currentSession.verdict?.winningAgentId;
+    const winningPathIds = new Set(graph.nodes.filter(n => n.type === 'claim' && n.agentId === winningAgentId).map(n => n.id));
+    drawConnectors(graph, winningPathIds, currentAgentOrder, currentSession.rounds.length);
+  }
+});
+</script>
+
+</body>
+</html>

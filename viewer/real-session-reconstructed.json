@@ -1,0 +1,80 @@
+{
+  "id": "841ac832-475a-4d0a-8f32-2d6c4b490aff",
+  "question": "Should frontier AI models be open source?",
+  "rounds": [
+    {
+      "roundNumber": 0,
+      "answers": [
+        {"agentId": "agent-1", "modelName": "llama-3.3-70b-versatile", "claims": [{"id": "agent-1-r0-c0", "agentId": "agent-1", "modelName": "llama-3.3-70b-versatile", "text": "Frontier AI models should be open sourced under controlled conditions to balance innovation with safety, allowing researchers to scrutinize and improve them while managing misuse risk through staged release.", "confidence": 0.75, "round": 0}], "finalAnswer": "Frontier AI models should be open sourced under controlled conditions to balance innovation with safety, allowing researchers to scrutinize and improve them while managing misuse risk through staged release."},
+        {"agentId": "agent-2", "modelName": "qwen/qwen3-32b", "claims": [{"id": "agent-2-r0-c0", "agentId": "agent-2", "modelName": "qwen/qwen3-32b", "text": "Open sourcing frontier models creates serious misuse risk at scale, since bad actors can fine-tune away safety guardrails once weights are public, making closed deployment the safer default for the most capable systems.", "confidence": 0.7, "round": 0}], "finalAnswer": "Open sourcing frontier models creates serious misuse risk at scale, since bad actors can fine-tune away safety guardrails once weights are public, making closed deployment the safer default for the most capable systems."},
+        {"agentId": "agent-3", "modelName": "openai/gpt-oss-120b", "claims": [{"id": "agent-3-r0-c0", "agentId": "agent-3", "modelName": "openai/gpt-oss-120b", "text": "A tiered approach works best: open source smaller, less dangerous models freely, while applying tiered licensing, audits, and oversight to frontier-scale models so safety and openness aren't a binary choice.", "confidence": 0.78, "round": 0}], "finalAnswer": "A tiered approach works best: open source smaller, less dangerous models freely, while applying tiered licensing, audits, and oversight to frontier-scale models so safety and openness aren't a binary choice."}
+      ],
+      "critiques": [
+        {"id": "c-a1-on-a2", "fromAgentId": "agent-1", "targetClaimId": "agent-2-r0-c0", "text": "This understates that closed models also get jailbroken regularly, so closedness alone doesn't guarantee safety.", "round": 0},
+        {"id": "c-a2-on-a3", "fromAgentId": "agent-2", "targetClaimId": "agent-3-r0-c0", "text": "Tiered licensing sounds reasonable but doesn't explain who enforces the audits or what happens when frontier weights leak anyway.", "round": 0},
+        {"id": "c-a3-on-a1", "fromAgentId": "agent-3", "targetClaimId": "agent-1-r0-c0", "text": "Staged release is vague — it doesn't specify concrete criteria for when a model is safe enough to release further.", "round": 0}
+      ]
+    },
+    {
+      "roundNumber": 1,
+      "answers": [
+        {"agentId": "agent-1", "modelName": "llama-3.3-70b-versatile", "claims": [{"id": "agent-1-r1-c0", "agentId": "agent-1", "modelName": "llama-3.3-70b-versatile", "text": "Fair point on jailbreaks affecting closed models too. I'll refine my position: staged release should use concrete capability thresholds (e.g. dangerous-capability evals) as the release criteria, not just time-based staging.", "confidence": 0.8, "round": 1}], "finalAnswer": "Fair point on jailbreaks affecting closed models too. I'll refine my position: staged release should use concrete capability thresholds (e.g. dangerous-capability evals) as the release criteria, not just time-based staging."},
+        {"agentId": "agent-2", "modelName": "qwen/qwen3-32b", "claims": [{"id": "agent-2-r1-c0", "agentId": "agent-2", "modelName": "qwen/qwen3-32b", "text": "A revised stance acknowledges that open-sourcing *with", "confidence": 0.65, "round": 1}], "finalAnswer": "A revised stance acknowledges that open-sourcing *with"},
+        {"agentId": "agent-3", "modelName": "openai/gpt-oss-120b", "claims": [{"id": "agent-3-r1-c0", "agentId": "agent-3", "modelName": "openai/gpt-oss-120b", "text": "Building on the critique: enforcement comes from a tiered licensing framework with independent audit standards, a commercial API tier for revenue-funded oversight, a public demo tier for transparency, an oversight board for accountability, and cryptographic attestation so compliance claims are verifiable rather than just promised.", "confidence": 0.88, "round": 1}], "finalAnswer": "Building on the critique: enforcement comes from a tiered licensing framework with independent audit standards, a commercial API tier for revenue-funded oversight, a public demo tier for transparency, an oversight board for accountability, and cryptographic attestation so compliance claims are verifiable rather than just promised."}
+      ],
+      "critiques": [
+        {"id": "c-a1-on-a2-r1", "fromAgentId": "agent-1", "targetClaimId": "agent-2-r1-c0", "text": "This response appears cut off and doesn't complete its argument.", "round": 1},
+        {"id": "c-a2-on-a3-r1", "fromAgentId": "agent-2", "targetClaimId": "agent-3-r1-c0", "text": "This is much more concrete, though cryptographic attestation for compliance is still a nontrivial engineering lift not yet proven at scale.", "round": 1},
+        {"id": "c-a3-on-a1-r1", "fromAgentId": "agent-3", "targetClaimId": "agent-1-r1-c0", "text": "Capability thresholds are better than time-based staging, but who defines and audits these evals remains unanswered.", "round": 1}
+      ]
+    }
+  ],
+  "verdict": {
+    "winningAgentId": "agent-3",
+    "winningAnswer": "Building on the critique: enforcement comes from a tiered licensing framework with independent audit standards, a commercial API tier for revenue-funded oversight, a public demo tier for transparency, an oversight board for accountability, and cryptographic attestation so compliance claims are verifiable rather than just promised.",
+    "reasoning": "Agent-3's final answer was the most complete and operational, proposing concrete enforcement mechanisms (licensing, audits, oversight board, cryptographic attestation) rather than abstract principles, and it directly addressed the critique about enforcement that agent-2 raised in round 0.",
+    "claimVerdicts": [
+      {"claimId": "agent-1-r0-c0", "agentId": "agent-1", "status": "partially_accepted", "score": 0.65, "judgeReasoning": "Reasonable starting position but lacked concrete release criteria, which was correctly identified by agent-3's critique."},
+      {"claimId": "agent-2-r0-c0", "agentId": "agent-2", "status": "partially_accepted", "score": 0.6, "judgeReasoning": "Valid concern about misuse risk but overstated the safety of closed models, which agent-1 correctly challenged."},
+      {"claimId": "agent-3-r0-c0", "agentId": "agent-3", "status": "accepted", "score": 0.82, "judgeReasoning": "Strong framing that avoided a false binary, though enforcement details were still missing at this stage."},
+      {"claimId": "agent-1-r1-c0", "agentId": "agent-1", "status": "partially_accepted", "score": 0.72, "judgeReasoning": "Good improvement using capability thresholds, but left open who defines and audits these evaluations."},
+      {"claimId": "agent-2-r1-c0", "agentId": "agent-2", "status": "rejected", "score": 0.3, "judgeReasoning": "Response was truncated mid-sentence and did not complete its argument, making it impossible to evaluate fairly."},
+      {"claimId": "agent-3-r1-c0", "agentId": "agent-3", "status": "accepted", "score": 0.91, "judgeReasoning": "Directly addressed the enforcement gap with specific, concrete mechanisms and held up well against further critique."}
+    ],
+    "rejectedAnswers": [
+      {"agentId": "agent-1", "answer": "Fair point on jailbreaks affecting closed models too. I'll refine my position: staged release should use concrete capability thresholds (e.g. dangerous-capability evals) as the release criteria, not just time-based staging.", "rejectionReason": "Agent-1's answer was solid but less complete than agent-3's, since it proposed criteria without specifying who would define or audit them."},
+      {"agentId": "agent-2", "answer": "A revised stance acknowledges that open-sourcing *with", "rejectionReason": "Agent-2's final response was cut off mid-sentence due to a token-limit issue, leaving the argument incomplete and unable to compete with agent-3's fully developed answer."}
+    ]
+  },
+  "evidenceGraph": {
+    "sessionId": "841ac832-475a-4d0a-8f32-2d6c4b490aff",
+    "question": "Should frontier AI models be open source?",
+    "nodes": [
+      {"id": "agent-1-r0-c0", "type": "claim", "agentId": "agent-1", "modelName": "llama-3.3-70b-versatile", "text": "Frontier AI models should be open sourced under controlled conditions to balance innovation with safety, allowing researchers to scrutinize and improve them while managing misuse risk through staged release.", "round": 0, "status": "partially_accepted", "score": 0.65},
+      {"id": "agent-2-r0-c0", "type": "claim", "agentId": "agent-2", "modelName": "qwen/qwen3-32b", "text": "Open sourcing frontier models creates serious misuse risk at scale, since bad actors can fine-tune away safety guardrails once weights are public, making closed deployment the safer default for the most capable systems.", "round": 0, "status": "partially_accepted", "score": 0.6},
+      {"id": "agent-3-r0-c0", "type": "claim", "agentId": "agent-3", "modelName": "openai/gpt-oss-120b", "text": "A tiered approach works best: open source smaller, less dangerous models freely, while applying tiered licensing, audits, and oversight to frontier-scale models so safety and openness aren't a binary choice.", "round": 0, "status": "accepted", "score": 0.82},
+      {"id": "agent-1-r1-c0", "type": "claim", "agentId": "agent-1", "modelName": "llama-3.3-70b-versatile", "text": "Fair point on jailbreaks affecting closed models too. I'll refine my position: staged release should use concrete capability thresholds (e.g. dangerous-capability evals) as the release criteria, not just time-based staging.", "round": 1, "status": "partially_accepted", "score": 0.72},
+      {"id": "agent-2-r1-c0", "type": "claim", "agentId": "agent-2", "modelName": "qwen/qwen3-32b", "text": "A revised stance acknowledges that open-sourcing *with", "round": 1, "status": "rejected", "score": 0.3},
+      {"id": "agent-3-r1-c0", "type": "claim", "agentId": "agent-3", "modelName": "openai/gpt-oss-120b", "text": "Building on the critique: enforcement comes from a tiered licensing framework with independent audit standards, a commercial API tier for revenue-funded oversight, a public demo tier for transparency, an oversight board for accountability, and cryptographic attestation so compliance claims are verifiable rather than just promised.", "round": 1, "status": "accepted", "score": 0.91},
+      {"id": "c-a1-on-a2", "type": "critique", "agentId": "agent-1", "modelName": "", "text": "This understates that closed models also get jailbroken regularly, so closedness alone doesn't guarantee safety.", "round": 0},
+      {"id": "c-a2-on-a3", "type": "critique", "agentId": "agent-2", "modelName": "", "text": "Tiered licensing sounds reasonable but doesn't explain who enforces the audits or what happens when frontier weights leak anyway.", "round": 0},
+      {"id": "c-a3-on-a1", "type": "critique", "agentId": "agent-3", "modelName": "", "text": "Staged release is vague — it doesn't specify concrete criteria for when a model is safe enough to release further.", "round": 0},
+      {"id": "c-a1-on-a2-r1", "type": "critique", "agentId": "agent-1", "modelName": "", "text": "This response appears cut off and doesn't complete its argument.", "round": 1},
+      {"id": "c-a2-on-a3-r1", "type": "critique", "agentId": "agent-2", "modelName": "", "text": "This is much more concrete, though cryptographic attestation for compliance is still a nontrivial engineering lift not yet proven at scale.", "round": 1},
+      {"id": "c-a3-on-a1-r1", "type": "critique", "agentId": "agent-3", "modelName": "", "text": "Capability thresholds are better than time-based staging, but who defines and audits these evals remains unanswered.", "round": 1}
+    ],
+    "edges": [
+      {"from": "c-a1-on-a2", "to": "agent-2-r0-c0", "relation": "critiques"},
+      {"from": "c-a2-on-a3", "to": "agent-3-r0-c0", "relation": "critiques"},
+      {"from": "c-a3-on-a1", "to": "agent-1-r0-c0", "relation": "critiques"},
+      {"from": "agent-1-r1-c0", "to": "agent-1-r0-c0", "relation": "revises"},
+      {"from": "agent-2-r1-c0", "to": "agent-2-r0-c0", "relation": "revises"},
+      {"from": "agent-3-r1-c0", "to": "agent-3-r0-c0", "relation": "revises"},
+      {"from": "c-a1-on-a2-r1", "to": "agent-2-r1-c0", "relation": "critiques"},
+      {"from": "c-a2-on-a3-r1", "to": "agent-3-r1-c0", "relation": "critiques"},
+      {"from": "c-a3-on-a1-r1", "to": "agent-1-r1-c0", "relation": "critiques"}
+    ],
+    "winningNodeId": "agent-3-r1-c0"
+  },
+  "createdAt": "2026-06-18T10:00:00Z"
+}

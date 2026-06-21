@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Evidence Graph Viewer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.9/standalone/umd/vis-network.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, system-ui, sans-serif;
+    background: #0b0d12;
+    color: #e6e6e6;
+  }
+  #header {
+    padding: 16px 24px;
+    border-bottom: 1px solid #232733;
+  }
+  #header h1 {
+    font-size: 19px;
+    margin: 0 0 4px 0;
+    color: #fff;
+    font-weight: 600;
+  }
+  #header p {
+    margin: 0;
+    color: #8a90a0;
+    font-size: 13px;
+  }
+  #controls {
+    padding: 10px 24px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    border-bottom: 1px solid #232733;
+    font-size: 12px;
+    flex-wrap: wrap;
+  }
+  #controls input[type="file"] { color: #e6e6e6; font-size: 12px; }
+  .legend { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .legend-item { display: flex; gap: 5px; align-items: center; color: #aab; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .box { width: 9px; height: 9px; display: inline-block; }
+  #layout { display: flex; }
+  #network { width: calc(100% - 360px); height: calc(100vh - 110px); }
+  #side-panel {
+    width: 360px;
+    height: calc(100vh - 110px);
+    background: #11131a;
+    border-left: 1px solid #232733;
+    padding: 18px;
+    overflow-y: auto;
+    font-size: 13px;
+  }
+  #side-panel h3 { color: #fff; margin: 0 0 12px 0; font-size: 15px; }
+  #side-panel .reason { color: #c0c4cc; line-height: 1.55; margin-bottom: 14px; }
+  #side-panel .label {
+    color: #6b7280; font-size: 10.5px; text-transform: uppercase;
+    letter-spacing: 0.06em; margin-bottom: 3px; font-weight: 600;
+  }
+  #side-panel .score-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 600; margin-bottom: 10px;
+  }
+  #side-panel .reject-item {
+    border-left: 2px solid #3a3f4d; padding-left: 10px; margin-bottom: 12px;
+  }
+  #empty-state {
+    display: flex; align-items: center; justify-content: center;
+    height: calc(100vh - 110px); color: #555b6b; font-size: 14px; width: 100%;
+  }
+  .hint { color: #555b6b; font-size: 11px; margin-top: 18px; line-height: 1.5; }
+  button.back-btn {
+    background: #1c1f2a; color: #ccc; border: 1px solid #333;
+    padding: 6px 10px; border-radius: 5px; font-size: 11px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1 id="question-title">Evidence Graph Viewer</h1>
+  <p id="session-meta">Load a debate session JSON file to begin</p>
+</div>
+
+<div id="controls">
+  <input type="file" id="file-input" accept=".json" />
+  <div class="legend">
+    <span class="legend-item"><span class="dot" style="background:#3ecf8e"></span>Accepted</span>
+    <span class="legend-item"><span class="dot" style="background:#e0b341"></span>Partially accepted</span>
+    <span class="legend-item"><span class="dot" style="background:#e0524d"></span>Rejected</span>
+    <span class="legend-item"><span class="box" style="background:#5b6fd6"></span>Critique</span>
+    <span class="legend-item"><span class="dot" style="background:#3ecf8e; box-shadow:0 0 8px 2px #ffd700"></span>Winning path</span>
+  </div>
+</div>
+
+<div id="layout">
+  <div id="empty-state">No session loaded yet. Choose a session JSON file above to render the evidence graph.</div>
+  <div id="network" style="display:none;"></div>
+  <div id="side-panel" style="display:none;"></div>
+</div>
+
+<script>
+let network = null;
+
+document.getElementById('file-input').addEventListener('change', function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (evt) {
+    try {
+      const session = JSON.parse(evt.target.result);
+      renderSession(session);
+    } catch (err) {
+      alert('Could not parse this file as JSON: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+});
+
+function statusColor(status) {
+  if (status === 'accepted') return '#3ecf8e';
+  if (status === 'partially_accepted') return '#e0b341';
+  if (status === 'rejected') return '#e0524d';
+  return '#4b5563';
+}
+
+function truncate(text, len) {
+  if (!text) return '';
+  return text.length > len ? text.slice(0, len) + '…' : text;
+}
+
+// Agent accent colors - thin border stripe on claim nodes so you can track
+// ONE agent's row across rounds at a glance, independent of accept/reject color.
+const AGENT_ACCENTS = ['#ff8a5b', '#5bc0ff', '#c792ff', '#ffd166', '#7ee787'];
+function agentAccent(agentId, agentOrder) {
+  const idx = agentOrder.indexOf(agentId);
+  return AGENT_ACCENTS[idx % AGENT_ACCENTS.length];
+}
+
+function renderSession(session) {
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('network').style.display = 'block';
+  document.getElementById('side-panel').style.display = 'block';
+  document.getElementById('question-title').textContent = session.question || 'Debate Session';
+
+  const agentOrder = [...new Set(
+    (session.rounds || []).flatMap(r => r.answers.map(a => a.agentId))
+  )];
+  document.getElementById('session-meta').textContent =
+    `${agentOrder.length} agents · ${session.rounds.length} rounds · winner: ${session.verdict?.winningAgentId || 'n/a'}`;
+
+  const graph = session.evidenceGraph;
+  if (!graph) {
+    alert('This session has no evidenceGraph field. Make sure you generated it with the updated orchestrator.');
+    return;
+  }
+
+  // --- Explicit grid layout: agents = fixed rows, rounds = fixed columns ---
+  // Positions are computed manually rather than via vis-network's auto
+  // hierarchical layout, so the same agent always occupies the same
+  // horizontal lane across the entire debate.
+  const ROUND_WIDTH = 380;
+  const AGENT_ROW_HEIGHT = 220;
+  const QUESTION_Y = -180;
+
+  const winningAgentId = session.verdict?.winningAgentId;
+  const maxRound = Math.max(0, ...graph.nodes.filter(n => n.type === 'claim').map(n => n.round));
+
+  const winningPathIds = new Set(
+    graph.nodes.filter(n => n.type === 'claim' && n.agentId === winningAgentId).map(n => n.id)
+  );
+
+  const visNodes = [];
+
+  visNodes.push({
+    id: '__question__',
+    label: truncate(session.question, 60),
+    title: session.question,
+    shape: 'box',
+    x: (maxRound * ROUND_WIDTH) / 2,
+    y: QUESTION_Y,
+    fixed: true,
+    color: { background: '#1c1f2a', border: '#444c5e' },
+    font: { color: '#e6e6e6', size: 14, bold: true },
+    widthConstraint: { maximum: 320 },
+    margin: 14,
+    shapeProperties: { borderRadius: 6 }
+  });
+
+  for (const n of graph.nodes) {
+    const isCritique = n.type === 'critique';
+    const isWinnerPath = winningPathIds.has(n.id);
+    const baseColor = isCritique ? '#5b6fd6' : statusColor(n.status);
+    const rowIndex = agentOrder.indexOf(n.agentId);
+
+    const x = n.round * ROUND_WIDTH + (isCritique ? ROUND_WIDTH * 0.5 : 0);
+    const y = rowIndex * AGENT_ROW_HEIGHT + (isCritique ? AGENT_ROW_HEIGHT * 0.5 : 0);
+
+    visNodes.push({
+      id: n.id,
+      label: truncate(n.text, 60),
+      title: n.text,
+      shape: isCritique ? 'box' : 'ellipse',
+      x, y, fixed: true,
+      color: {
+        background: baseColor,
+        border: isWinnerPath ? '#ffd700' : agentAccent(n.agentId, agentOrder),
+        highlight: { background: baseColor, border: '#ffd700' }
+      },
+      borderWidth: isWinnerPath ? 5 : 2,
+      shadow: isWinnerPath ? { enabled: true, color: 'rgba(255,215,0,0.5)', size: 12 } : false,
+      opacity: isWinnerPath || isCritique ? 1 : 0.65,
+      font: { color: '#0f1117', size: 12 },
+      widthConstraint: { maximum: isCritique ? 170 : 210 },
+      _raw: n
+    });
+  }
+
+  const visEdges = [];
+
+  for (const n of graph.nodes.filter(n => n.type === 'claim' && n.round === 0)) {
+    visEdges.push({
+      from: '__question__', to: n.id, arrows: 'to',
+      color: '#3a3f4d', dashes: false, smooth: { type: 'cubicBezier', forceDirection: 'vertical' }
+    });
+  }
+
+  for (const e of graph.edges) {
+    const isCritiqueEdge = e.relation === 'critiques';
+    const targetIsWinner = winningPathIds.has(e.to) || winningPathIds.has(e.from);
+    visEdges.push({
+      from: e.from, to: e.to, arrows: 'to',
+      dashes: isCritiqueEdge,
+      color: isCritiqueEdge ? '#e0524d' : (targetIsWinner ? '#ffd700' : '#3a3f4d'),
+      width: targetIsWinner && !isCritiqueEdge ? 3 : 1.5,
+      label: ''
+    });
+  }
+
+  const data = { nodes: new vis.DataSet(visNodes), edges: new vis.DataSet(visEdges) };
+
+  const options = {
+    layout: { randomSeed: 1 },
+    physics: false,
+    nodes: { margin: 10 },
+    edges: { smooth: { type: 'cubicBezier', forceDirection: 'horizontal' } },
+    interaction: { hover: true, dragNodes: false, zoomView: true }
+  };
+
+  const container = document.getElementById('network');
+  network = new vis.Network(container, data, options);
+  network.fit({ animation: false });
+
+  network.on('click', function (params) {
+    if (params.nodes.length > 0 && params.nodes[0] !== '__question__') {
+      const node = visNodes.find(n => n.id === params.nodes[0]);
+      showDetail(node._raw, session);
+    }
+  });
+
+  showVerdictSummary(session);
+}
+
+function showDetail(node, session) {
+  const panel = document.getElementById('side-panel');
+  const v = session.verdict;
+  const claimVerdict = v?.claimVerdicts?.find(cv => cv.claimId === node.id);
+
+  let html = `<h3>${node.type === 'claim' ? 'Claim' : 'Critique'} — ${node.agentId}</h3>`;
+  html += `<div class="label">Round ${node.round}${node.modelName ? ' · ' + node.modelName : ''}</div>`;
+  html += `<div class="reason">${node.text}</div>`;
+
+  if (claimVerdict) {
+    const color = statusColor(claimVerdict.status);
+    html += `<span class="score-badge" style="background:${color};color:#0f1117;">${claimVerdict.status.replace('_',' ')} · score ${claimVerdict.score.toFixed(2)}</span>`;
+    html += `<div class="label">Judge's reasoning for this claim</div><div class="reason">${claimVerdict.judgeReasoning}</div>`;
+  }
+
+  html += `<div style="margin-top:16px;"><button class="back-btn" onclick="showVerdictSummary(window.__lastSession__)">← Back to verdict summary</button></div>`;
+
+  panel.innerHTML = html;
+}
+
+function showVerdictSummary(session) {
+  window.__lastSession__ = session;
+  const panel = document.getElementById('side-panel');
+  const v = session.verdict;
+  if (!v) { panel.innerHTML = '<p>No verdict in this session.</p>'; return; }
+
+  let html = `<h3>Why ${v.winningAgentId} won</h3>`;
+  html += `<div class="reason">${v.reasoning}</div>`;
+  html += `<div class="label">Winning answer</div><div class="reason">${v.winningAnswer}</div>`;
+  html += `<div class="label">Why the others lost</div>`;
+  for (const r of v.rejectedAnswers || []) {
+    html += `<div class="reject-item"><b>${r.agentId}:</b> ${r.rejectionReason}</div>`;
+  }
+  html += `<div class="hint">Click any node in the graph to see that specific claim's judged status and reasoning. The gold-glow path traces the winning agent's full chain of claims across rounds.</div>`;
+  panel.innerHTML = html;
+}
+</script>
+
+</body>
+</html>
