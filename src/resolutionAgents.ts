@@ -148,16 +148,13 @@ async function runWithTools(
 
     // If the model wants to call a tool, execute it and loop back
     if (choice.finish_reason === "tool_calls" && msg.tool_calls?.length) {
-      messages.push(msg); // add assistant's tool call message to history
+      messages.push(msg);
       for (const toolCall of msg.tool_calls) {
         const args = JSON.parse(toolCall.function.arguments);
         let searchResult: string;
         try {
           searchResult = await webSearch(args.query);
         } catch (err) {
-          // Surface the failure to the agent explicitly rather than feeding
-          // it a fabricated result. The agent is instructed to treat this
-          // as "evidence unavailable" and lower confidence / lean UNCLEAR.
           searchResult = `[SEARCH FAILED: ${(err as Error).message}. Treat this query as unverified — do not assume an answer.]`;
         }
         messages.push({
@@ -166,7 +163,31 @@ async function runWithTools(
           content: searchResult
         });
       }
-      continue; // go back and let the model process the search results
+
+      // After every search, force a text answer with no tools available.
+      // llama-3.1-8b loops on tool_calls indefinitely without this.
+      // Larger models (llama-3.3-70b, qwen) self-terminate naturally after
+      // one search and return via the "Model is done" path below instead.
+      const forced = await client.chat.completions.create({
+        model: modelName,
+        messages: [
+          ...messages,
+          {
+            role: "user",
+            content: "Based on the search results above, give your final assessment now as plain text. State your verdict (YES/NO/UNCLEAR) and reasoning in 2-3 sentences. Do not search again."
+          }
+        ],
+        max_tokens: 400,
+        temperature: 0.3,
+        // No tools — forces text response unconditionally
+        ...(isReasoningModel ? { reasoning_format: "hidden" as any } : {})
+      });
+      const forcedText = forced.choices[0]?.message?.content || "";
+      if (forcedText.trim()) {
+        return stripReasoningArtifacts(forcedText);
+      }
+
+      continue;
     }
 
     // Model is done with tool calls — return the final text
@@ -334,7 +355,7 @@ If major news sources disagree or the evidence is thin, say so explicitly.`,
     ),
     new ResolutionAgent(
       "edge-case-finder",
-      "openai/gpt-oss-120b",
+      "llama-3.3-70b-versatile",
       "Edge Case Identifier",
       `You are an Edge Case Identifier specializing in finding the ways a prediction
 market resolution can go wrong.

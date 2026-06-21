@@ -51,12 +51,19 @@ async function main() {
 
   // Demo market: a real historical Polymarket market with known resolution
   // Change this to any market you want to assess
+const question = process.argv.slice(2).join(" ");
   const marketInput: MarketInput = {
-    marketQuestion: "Will the Fed cut interest rates at the June 2025 FOMC meeting?",
-    resolutionRules: `This market will resolve YES if the Federal Reserve announces a reduction in the federal funds rate target range at the conclusion of the June 17-18, 2025 FOMC meeting. Resolution source: official Federal Reserve press release at federalreserve.gov. If the Fed holds rates or raises them, resolves NO.`,
-    eventDescription: `The June 17-18 2025 FOMC meeting concluded. Markets had priced approximately 8% probability of a cut entering the meeting. Fed Chair Powell had signaled patience given persistent inflation concerns and a strong labor market.`,
-    marketUrl: "https://polymarket.com/event/fed-rate-cut-june-2025"
-  };
+  marketQuestion:
+    question || "Will ETH reach $10,000 before December 31, 2026?",
+
+  resolutionRules:
+    "This market resolves YES if Ethereum trades at or above $10,000 on any major exchange before 23:59 UTC on December 31, 2026. Resolution source: CoinMarketCap.",
+
+  eventDescription:
+    "Ethereum price target market.",
+
+  marketUrl: "https://coinmarketcap.com/currencies/ethereum/"
+};
 
   const qHash = questionHash(marketInput.marketQuestion, marketInput.resolutionRules);
   console.log(`\nQuestion hash: ${qHash}`);
