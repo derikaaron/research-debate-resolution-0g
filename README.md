@@ -1,6 +1,6 @@
 # Polymarket Resolution Assistant  0G Hackathon
 
-An AI-powered multi-agent debate system that helps Polymarket proposers decide **YES / NO / UNCLEAR** before staking $750 USDC on a resolution — with a full reasoning trail — designed to be stored permanently on 0G Storage and anchored on-chain via the included ResolutionRegistry contract.
+An AI-powered multi-agent debate system that helps Polymarket proposers decide **YES / NO / UNCLEAR** before staking $750 USDC on a resolution  with a full reasoning trail  designed to be stored permanently on 0G Storage and anchored on-chain via the included ResolutionRegistry contract.
 
 ## The Problem
 
