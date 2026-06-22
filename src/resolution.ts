@@ -52,17 +52,20 @@ async function main() {
   // Demo market: a real historical Polymarket market with known resolution
   // Change this to any market you want to assess
 const question = process.argv.slice(2).join(" ");
-  const marketInput: MarketInput = {
+
+const marketInput: MarketInput = {
   marketQuestion:
-    question || "Will ETH reach $10,000 before December 31, 2026?",
+    question ||
+    "Will the Fed cut interest rates at the June 2025 FOMC meeting?",
 
   resolutionRules:
-    "This market resolves YES if Ethereum trades at or above $10,000 on any major exchange before 23:59 UTC on December 31, 2026. Resolution source: CoinMarketCap.",
+    "This market resolves YES if the Federal Reserve announces a reduction in the federal funds rate target range at the conclusion of the June 17-18, 2025 FOMC meeting. Resolution source: official Federal Reserve press release.",
 
   eventDescription:
-    "Ethereum price target market.",
+    "The June 17-18 2025 FOMC meeting concluded. Markets had priced approximately 8% probability of a cut entering the meeting. Fed Chair Powell had signaled patience given persistent inflation concerns and a strong labor market.",
 
-  marketUrl: "https://coinmarketcap.com/currencies/ethereum/"
+  marketUrl:
+    "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
 };
 
   const qHash = questionHash(marketInput.marketQuestion, marketInput.resolutionRules);
